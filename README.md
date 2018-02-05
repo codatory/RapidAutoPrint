@@ -4,6 +4,9 @@ Prints files in a specified directory very quickly using Filesystem Notification
 # Usage
 Currently the program supports no configuration, so you will need to create a folder c:\printme. Any PDF file placed into that file will be printed to the system's default printer and then deleted.
 
+# Downloading
+Pre-compiled binaries are available on the [releases page](https://github.com/codatory/RapidAutoPrint/releases).
+
 # Contributing
 Pull requests and Issues welcome!
 

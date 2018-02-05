@@ -4,11 +4,15 @@ using System.Configuration;
 using System.Diagnostics;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections;
+using System.Threading;
 
 namespace RapidAutoPrint
 {
     class Program
     {
+        public static Queue jobQ = new Queue();
+
         static void Main(string[] args)
         {
             var config = loadConfig();
@@ -25,8 +29,11 @@ namespace RapidAutoPrint
             var existingFiles = Directory.EnumerateFiles(config["Path"], config["Filter"]);
             foreach (string existingFile in existingFiles)
             {
-                DoPrint(existingFile);
+                QPrint(existingFile);
             }
+
+            Thread worker = new Thread(printThread);
+            worker.Start();
 
             Console.WriteLine("Press \'q\' to quit. Press \'c\' to configure.");
             while (true)
@@ -48,12 +55,36 @@ namespace RapidAutoPrint
 
         private static void OnRenamed(object sender, RenamedEventArgs e)
         {
-            DoPrint(e.FullPath);
+            QPrint(e.FullPath);
         }
 
         private static void OnCreated(object sender, FileSystemEventArgs e)
         {
-            DoPrint(e.FullPath);
+            QPrint(e.FullPath);
+        }
+
+        private static void QPrint(string path)
+        {
+            Console.WriteLine($"Enqueieing {path}");
+            lock (jobQ.SyncRoot)
+            {
+                jobQ.Enqueue(path);
+            }
+        }
+
+        private static void printThread()
+        {
+            while (true)
+            {
+                lock (jobQ.SyncRoot)
+                {
+                    while (jobQ.Count > 0)
+                    {
+                        DoPrint(jobQ.Dequeue().ToString());
+                    }
+                }
+                Thread.Sleep(100);
+            }
         }
 
         private static void DoPrint(string path)
@@ -65,7 +96,7 @@ namespace RapidAutoPrint
 
             if (File.Exists(path))
             {
-                Console.WriteLine($"Processing file {path}");
+                Console.WriteLine($"Printing {path}");
                 ProcessStartInfo info = new ProcessStartInfo(path.Trim());
                 info.Verb = "Print";
                 info.CreateNoWindow = true;

@@ -2,7 +2,7 @@
 Prints files in a specified directory very quickly using Filesystem Notifications
 
 # Usage
-Currently the program supports no configuration, so you will need to create a folder c:\printme. Any PDF file placed into that file will be printed to the system's default printer and then deleted.
+On first run, the program will create a config file by asking you what folder and filetypes you want to monitor for. You'll need a program that can properly read & print the files you plan on printing, and it will print to your default printer. For testing, I recommend the XPS or PDF printer from Microsoft so you don't waste paper!
 
 # Downloading
 Pre-compiled binaries are available on the [releases page](https://github.com/codatory/RapidAutoPrint/releases).

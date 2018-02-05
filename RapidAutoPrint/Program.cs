@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Configuration;
 using System.Diagnostics;
 
@@ -13,8 +9,25 @@ namespace RapidAutoPrint
     {
         static void Main(string[] args)
         {
-            var path = "c:\\printme";
-            var filter = "*.pdf";
+            var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+            var appSettings = configFile.AppSettings.Settings;
+
+            var path = ConfigurationManager.AppSettings["Path"];
+            var filter = ConfigurationManager.AppSettings["Filter"];
+
+            if (string.IsNullOrEmpty(path))
+            {
+                Console.WriteLine("What path should I monitor?");
+                path = Console.ReadLine();
+                appSettings.Add("Path", path);
+            }
+            if (string.IsNullOrEmpty(filter))
+            {
+                Console.WriteLine("What filename should I monitor (accepts wildcards)?");
+                filter = Console.ReadLine();
+                appSettings.Add("Filter", filter);
+            }
+            configFile.Save(ConfigurationSaveMode.Modified);
 
             FileSystemWatcher watcher = new FileSystemWatcher();
             watcher.Path = path;
@@ -49,16 +62,19 @@ namespace RapidAutoPrint
         {
             if (string.IsNullOrEmpty(path))
             {
-                throw new ArgumentException("message", nameof(path));
+                throw new ArgumentException("DoPrint called with empty string!", nameof(path));
             }
 
-            ProcessStartInfo info = new ProcessStartInfo(path.Trim());
-            info.Verb = "Print";
-            info.CreateNoWindow = true;
-            info.WindowStyle = ProcessWindowStyle.Hidden;
-            var p = Process.Start(info);
-            p.WaitForExit();
-            File.Delete(path);
+            if (File.Exists(path))
+            {
+                ProcessStartInfo info = new ProcessStartInfo(path.Trim());
+                info.Verb = "Print";
+                info.CreateNoWindow = true;
+                info.WindowStyle = ProcessWindowStyle.Hidden;
+                var p = Process.Start(info);
+                p.WaitForExit();
+                File.Delete(path);
+            }
         }
     }
 }

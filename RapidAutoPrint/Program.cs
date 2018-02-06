@@ -10,11 +10,38 @@ namespace RapidAutoPrint
     class Program
     {
         public static ConcurrentQueue<string> jobQ = new ConcurrentQueue<string>();
+        public static bool running = true;
 
         static void Main(string[] args)
         {
             var config = loadConfig();
+            setupFileWatcher(config);
 
+            Thread worker = new Thread(printThread);
+            worker.Start();
+
+            Console.WriteLine("Press \'q\' to quit. Press \'c\' to configure.");
+            while (true)
+            {
+                var ch = Console.ReadKey(false).Key;
+                switch (ch)
+                {
+                    case ConsoleKey.Q:
+                        running = false;
+                        worker.Join(1000);
+                        Environment.Exit(0);
+                        break;
+                    case ConsoleKey.C:
+                        loadConfig(true);
+                        Console.WriteLine("Quitting to reload configuration.");
+                        Environment.Exit(0);
+                        break;
+                }
+            }
+        }
+
+        private static void setupFileWatcher(Dictionary<string, string> config)
+        {
             FileSystemWatcher watcher = new FileSystemWatcher();
             watcher.Path = config["Path"];
             watcher.Filter = config["Filter"];
@@ -28,26 +55,6 @@ namespace RapidAutoPrint
             foreach (string existingFile in existingFiles)
             {
                 QPrint(existingFile);
-            }
-
-            Thread worker = new Thread(printThread);
-            worker.Start();
-
-            Console.WriteLine("Press \'q\' to quit. Press \'c\' to configure.");
-            while (true)
-            {
-                var ch = Console.ReadKey(false).Key;
-                switch (ch)
-                {
-                    case ConsoleKey.Q:
-                        Environment.Exit(0);
-                        break;
-                    case ConsoleKey.C:
-                        loadConfig(true);
-                        Console.WriteLine("Quitting to reload configuration.");
-                        Environment.Exit(0);
-                        break;
-                }
             }
         }
 
@@ -69,14 +76,18 @@ namespace RapidAutoPrint
 
         private static void printThread()
         {
-            while (true)
+            while (running)
             {
-                string job;
-                while (jobQ.TryDequeue(out job))
+                if (jobQ.IsEmpty)
                 {
+                    Thread.Sleep(200);
+                }
+                else
+                {
+                    string job;
+                    jobQ.TryDequeue(out job);
                     DoPrint(job);
                 }
-                Thread.Sleep(100);
             }
         }
 

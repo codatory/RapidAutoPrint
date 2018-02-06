@@ -2,15 +2,14 @@
 using System.IO;
 using System.Configuration;
 using System.Diagnostics;
-using System.Collections.Generic;
-using System.Collections;
-using System.Threading;
+using System.Collections.Generic;using System.Threading;
+using System.Collections.Concurrent;
 
 namespace RapidAutoPrint
 {
     class Program
     {
-        public static Queue jobQ = new Queue();
+        public static ConcurrentQueue<string> jobQ = new ConcurrentQueue<string>();
 
         static void Main(string[] args)
         {
@@ -65,22 +64,17 @@ namespace RapidAutoPrint
         private static void QPrint(string path)
         {
             Console.WriteLine($"Enqueieing {path}");
-            lock (jobQ.SyncRoot)
-            {
-                jobQ.Enqueue(path);
-            }
+            jobQ.Enqueue(path);
         }
 
         private static void printThread()
         {
             while (true)
             {
-                lock (jobQ.SyncRoot)
+                string job;
+                while (jobQ.TryDequeue(out job))
                 {
-                    while (jobQ.Count > 0)
-                    {
-                        DoPrint(jobQ.Dequeue().ToString());
-                    }
+                    DoPrint(job);
                 }
                 Thread.Sleep(100);
             }
